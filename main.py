@@ -2,6 +2,8 @@ from kivy.lang import Builder
 from kivy.properties import StringProperty
 from kivymd.app import MDApp
 from kivymd.uix.button import MDRaisedButton
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.label import MDLabel
 
 from services.weather_service import WeatherService
 from managers.favorites_manager import FavoritesManager
@@ -226,19 +228,24 @@ ScreenManager:
 
         MDBoxLayout:
             orientation: "vertical"
-            padding: 20
-            spacing: 15
+            padding: 15
+            spacing: 10
 
             MDLabel:
-                id: forecast_title
-                text: "5 Günlük Tahmin"
+                text: "Favori Şehirlerin 5 Günlük Tahmini"
                 halign: "center"
-                font_style: "H4"
+                font_style: "H5"
+                size_hint_y: None
+                height: "50dp"
 
-            MDBoxLayout:
-                id: forecast_list
-                orientation: "vertical"
-                spacing: 10
+            ScrollView:
+                MDBoxLayout:
+                    id: forecast_list
+                    orientation: "vertical"
+                    spacing: 15
+                    padding: 5
+                    size_hint_y: None
+                    height: self.minimum_height
 
         Footer:
 
@@ -367,6 +374,70 @@ class SkyMateApp(MDApp):
         self.active_screen = "home"
 
     def open_forecast(self):
+        screen = self.root.get_screen("forecast")
+        box = screen.ids.forecast_list
+        box.clear_widgets()
+
+        favorites = self.favorites_manager.get_favorites()
+
+        if not favorites:
+            box.add_widget(
+                MDRaisedButton(
+                    text="Favori şehir yok",
+                    disabled=True,
+                    pos_hint={"center_x": 0.5}
+                )
+            )
+        else:
+            for city in favorites:
+                city_layout = MDBoxLayout(
+                    orientation="vertical",
+                    spacing=8,
+                    size_hint_y=None,
+                    height="145dp"
+                )
+
+                city_label = MDLabel(
+                    text=f"📍 {city}",
+                    halign="center",
+                    font_style="H6",
+                    size_hint_y=None,
+                    height="30dp"
+                )
+                city_layout.add_widget(city_label)
+
+                days_layout = MDBoxLayout(
+                    orientation="horizontal",
+                    spacing=5,
+                    size_hint_y=None,
+                    height="105dp"
+                )
+
+                forecast_data = self.service.get_forecast(city)
+
+                if not forecast_data:
+                    days_layout.add_widget(
+                        MDRaisedButton(
+                            text="Veri yok",
+                            disabled=True
+                        )
+                    )
+                else:
+                    for day in forecast_data:
+                        day_text = f"{day['date']}\n{day['temp']}°C\n{day['desc']}"
+
+                        day_button = MDRaisedButton(
+                            text=day_text,
+                            disabled=True,
+                            font_size="10sp",
+                            size_hint_x=1
+                        )
+
+                        days_layout.add_widget(day_button)
+
+                city_layout.add_widget(days_layout)
+                box.add_widget(city_layout)
+
         self.root.current = "forecast"
         self.active_screen = "forecast"
 
