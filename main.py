@@ -66,7 +66,6 @@ KV = '''
             text_color: app.theme_cls.primary_color if app.active_screen == "favorites" else (0,0,0,1)
             on_release:
                 app.open_favorites()
-                app.active_screen = "favorites"
 
         MDLabel:
             text: "[b]Favoriler[/b]"
@@ -83,7 +82,6 @@ KV = '''
             text_color: app.theme_cls.primary_color if app.active_screen == "forecast" else (0,0,0,1)
             on_release:
                 app.open_forecast()
-                app.active_screen = "forecast"
 
         MDLabel:
             text: "[b]Tahmin[/b]"
@@ -160,9 +158,10 @@ ScreenManager:
                     halign: "center"
 
             MDRaisedButton:
-                text: "Favorilere Ekle"
+                id: fav_btn
+                text: "♡ Favorilere Ekle"
                 pos_hint: {"center_x": 0.5}
-                on_release: app.add_current_city_to_favorites()
+                on_release: app.toggle_favorite()
 
         Footer:
 
@@ -297,6 +296,35 @@ class SkyMateApp(MDApp):
             home.ids.desc.text = weather.get_desc()
             home.ids.humidity.text = weather.get_humidity()
             home.ids.wind.text = weather.get_wind()
+            self.update_favorite_button()
+
+    def is_favorite(self, city):
+        return city in self.favorites_manager.get_favorites()
+
+    def update_favorite_button(self):
+        home = self.root.get_screen("home")
+        city = home.ids.city.text
+
+        if self.is_favorite(city):
+            home.ids.fav_btn.text = "♥ Favorilerden Kaldır"
+        else:
+            home.ids.fav_btn.text = "♡ Favorilere Ekle"
+
+    def toggle_favorite(self):
+        home = self.root.get_screen("home")
+        city = home.ids.city.text
+
+        if city == "" or city == "Yükleniyor...":
+            return
+
+        if self.is_favorite(city):
+            self.favorites_manager.remove_favorite(city)
+            print(f"{city} favorilerden kaldırıldı")
+        else:
+            self.favorites_manager.add_favorite(city)
+            print(f"{city} favorilere eklendi")
+
+        self.update_favorite_button()
 
     def search_city(self, city):
         if city.strip() == "":
@@ -306,14 +334,6 @@ class SkyMateApp(MDApp):
         self.root.current = "home"
         self.active_screen = "home"
 
-    def add_current_city_to_favorites(self):
-        home = self.root.get_screen("home")
-        current_city = home.ids.city.text
-
-        if current_city and current_city != "Yükleniyor...":
-            self.favorites_manager.add_favorite(current_city)
-            print("Favoriye eklendi:", current_city)
-
     def open_favorites(self):
         screen = self.root.get_screen("favorites")
         box = screen.ids.favorites_list
@@ -322,10 +342,19 @@ class SkyMateApp(MDApp):
         favorites = self.favorites_manager.get_favorites()
 
         if not favorites:
-            box.add_widget(MDRaisedButton(text="Favori yok", disabled=True))
+            box.add_widget(
+                MDRaisedButton(
+                    text="Favori yok",
+                    disabled=True,
+                    pos_hint={"center_x": 0.5}
+                )
+            )
         else:
             for city in favorites:
-                btn = MDRaisedButton(text=city)
+                btn = MDRaisedButton(
+                    text=city,
+                    pos_hint={"center_x": 0.5}
+                )
                 btn.bind(on_release=lambda x, c=city: self.open_city(c))
                 box.add_widget(btn)
 
