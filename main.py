@@ -17,7 +17,7 @@ from screens.settings_screen import SettingsScreen
 
 API_KEY = "48a6c8f768aa8431c407a95bf8b878f1"
 
-KV = '''
+KV = """
 <Footer@MDBoxLayout>:
     size_hint_y: None
     height: "90dp"
@@ -242,7 +242,7 @@ ScreenManager:
                 MDBoxLayout:
                     id: forecast_list
                     orientation: "vertical"
-                    spacing: 15
+                    spacing: 25
                     padding: 5
                     size_hint_y: None
                     height: self.minimum_height
@@ -277,7 +277,7 @@ ScreenManager:
                 on_release: app.change_unit()
 
         Footer:
-'''
+"""
 
 
 class SkyMateApp(MDApp):
@@ -351,17 +351,12 @@ class SkyMateApp(MDApp):
         if not favorites:
             box.add_widget(
                 MDRaisedButton(
-                    text="Favori yok",
-                    disabled=True,
-                    pos_hint={"center_x": 0.5}
+                    text="Favori yok", disabled=True, pos_hint={"center_x": 0.5}
                 )
             )
         else:
             for city in favorites:
-                btn = MDRaisedButton(
-                    text=city,
-                    pos_hint={"center_x": 0.5}
-                )
+                btn = MDRaisedButton(text=city, pos_hint={"center_x": 0.5})
                 btn.bind(on_release=lambda x, c=city: self.open_city(c))
                 box.add_widget(btn)
 
@@ -383,26 +378,21 @@ class SkyMateApp(MDApp):
         if not favorites:
             box.add_widget(
                 MDRaisedButton(
-                    text="Favori şehir yok",
-                    disabled=True,
-                    pos_hint={"center_x": 0.5}
+                    text="Favori şehir yok", disabled=True, pos_hint={"center_x": 0.5}
                 )
             )
         else:
             for city in favorites:
                 city_layout = MDBoxLayout(
-                    orientation="vertical",
-                    spacing=8,
-                    size_hint_y=None,
-                    height="145dp"
+                    orientation="vertical", spacing=0, padding=0, size_hint_y=None
                 )
 
                 city_label = MDLabel(
-                    text=f"📍 {city}",
-                    halign="center",
-                    font_style="H6",
+                    text=f" {city}",
+                    halign="left",
+                    font_style="H5",
                     size_hint_y=None,
-                    height="30dp"
+                    height="25dp",
                 )
                 city_layout.add_widget(city_label)
 
@@ -410,39 +400,49 @@ class SkyMateApp(MDApp):
                     orientation="horizontal",
                     spacing=5,
                     size_hint_y=None,
-                    height="105dp"
+                    height="105dp",
+                    md_bg_color=(0.75, 0.9, 0.95, 1),
                 )
 
                 forecast_data = self.service.get_forecast(city)
 
                 if not forecast_data:
                     days_layout.add_widget(
-                        MDRaisedButton(
-                            text="Veri yok",
-                            disabled=True
-                        )
+                        MDRaisedButton(text="Veri yok", disabled=True)
                     )
                 else:
                     for day in forecast_data:
-                        day_text = f"{day['date']}\n{day['temp']}°C\n{day['desc']}"
+                        from datetime import datetime
+
+                        tarih = datetime.strptime(day["date"], "%Y-%m-%d")
+                        yeni_tarih = tarih.strftime("%d-%m-%Y")
+
+                        day_text = f"{yeni_tarih}\n{day['temp']}°C\n{day['desc']}"
 
                         day_button = MDRaisedButton(
                             text=day_text,
                             disabled=True,
-                            font_size="10sp",
-                            size_hint_x=1
+                            font_size="18sp",
+                            size_hint=(1, 1),
                         )
 
                         days_layout.add_widget(day_button)
 
                 city_layout.add_widget(days_layout)
+
+                city_layout.height = city_label.height + days_layout.height
+
                 box.add_widget(city_layout)
 
         self.root.current = "forecast"
         self.active_screen = "forecast"
+        scroll = screen.children[0].children[0]
+        scroll.scroll_y = 1
 
     def change_theme(self):
-        self.theme_cls.theme_style = "Dark" if self.theme_cls.theme_style == "Light" else "Light"
+        self.theme_cls.theme_style = (
+            "Dark" if self.theme_cls.theme_style == "Light" else "Light"
+        )
 
     def change_unit(self):
         pass
