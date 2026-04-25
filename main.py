@@ -161,7 +161,7 @@ ScreenManager:
 
             MDRaisedButton:
                 id: fav_btn
-                text: "♡ Favorilere Ekle"
+                text: "Favorilere Ekle"
                 pos_hint: {"center_x": 0.5}
                 on_release: app.toggle_favorite()
 
@@ -313,9 +313,9 @@ class SkyMateApp(MDApp):
         city = home.ids.city.text
 
         if self.is_favorite(city):
-            home.ids.fav_btn.text = "♥ Favorilerden Kaldır"
+            home.ids.fav_btn.text = "Favorilerden Kaldır"
         else:
-            home.ids.fav_btn.text = "♡ Favorilere Ekle"
+            home.ids.fav_btn.text = "Favorilere Ekle"
 
     def toggle_favorite(self):
         home = self.root.get_screen("home")
