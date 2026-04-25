@@ -22,7 +22,7 @@ KV = """
     size_hint_y: None
     height: "90dp"
     padding: 0, 10, 0, 15
-    md_bg_color: 0.75, 0.9, 0.95, 1
+    md_bg_color: (0.88, 0.88, 0.88, 1) if app.theme_cls.theme_style == "Light" else (0.16, 0.16, 0.16, 1)
 
     MDBoxLayout:
         orientation: "vertical"
@@ -121,6 +121,7 @@ ScreenManager:
 
     MDBoxLayout:
         orientation: "vertical"
+        md_bg_color: (0.95, 0.95, 0.95, 1) if app.theme_cls.theme_style == "Light" else (0.12, 0.12, 0.12, 1)
 
         MDBoxLayout:
             orientation: "vertical"
@@ -173,6 +174,7 @@ ScreenManager:
 
     MDBoxLayout:
         orientation: "vertical"
+        md_bg_color: (0.95, 0.95, 0.95, 1) if app.theme_cls.theme_style == "Light" else (0.12, 0.12, 0.12, 1)
 
         MDBoxLayout:
             orientation: "vertical"
@@ -201,6 +203,7 @@ ScreenManager:
 
     MDBoxLayout:
         orientation: "vertical"
+        md_bg_color: (0.95, 0.95, 0.95, 1) if app.theme_cls.theme_style == "Light" else (0.12, 0.12, 0.12, 1)
 
         MDBoxLayout:
             orientation: "vertical"
@@ -225,6 +228,7 @@ ScreenManager:
 
     MDBoxLayout:
         orientation: "vertical"
+        md_bg_color: (0.95, 0.95, 0.95, 1) if app.theme_cls.theme_style == "Light" else (0.12, 0.12, 0.12, 1)
 
         MDBoxLayout:
             orientation: "vertical"
@@ -255,6 +259,7 @@ ScreenManager:
 
     MDBoxLayout:
         orientation: "vertical"
+        md_bg_color: (0.95, 0.95, 0.95, 1) if app.theme_cls.theme_style == "Light" else (0.12, 0.12, 0.12, 1)
 
         MDBoxLayout:
             orientation: "vertical"
@@ -267,12 +272,14 @@ ScreenManager:
                 font_style: "H4"
 
             MDRaisedButton:
-                text: "Tema Değiştir"
+                id: theme_btn
+                text: "Tema: " + app.theme_cls.theme_style
                 pos_hint: {"center_x": 0.5}
                 on_release: app.change_theme()
 
             MDRaisedButton:
-                text: "Celsius / Fahrenheit"
+                id: unit_btn
+                text: "Sıcaklık Birimi: " + app.get_unit_text()
                 pos_hint: {"center_x": 0.5}
                 on_release: app.change_unit()
 
@@ -282,16 +289,34 @@ ScreenManager:
 
 class SkyMateApp(MDApp):
     active_screen = StringProperty("home")
+    temp_unit = StringProperty("C")
 
     def build(self):
         self.service = WeatherService(API_KEY)
         self.favorites_manager = FavoritesManager()
         self.settings_manager = SettingsManager()
 
+        self.theme_cls.theme_style = "Light"
+        self.temp_unit = "C"
+
         self.root = Builder.load_string(KV)
         self.load_weather("Yalova")
 
         return self.root
+    
+    def get_unit_text(self):
+     return "Celsius (°C)" if self.temp_unit == "C" else "Fahrenheit (°F)"
+
+    def format_temp(self, temp):
+        try:
+            temp = float(str(temp).replace("°C", "").replace("°F", "").strip())
+        except:
+            return str(temp)
+
+        if self.temp_unit == "F":
+            return f"{(temp * 9 / 5) + 32:.1f}°F"
+
+        return f"{temp:.1f}°C"
 
     def load_weather(self, city):
         weather = self.service.get_weather(city)
@@ -299,7 +324,7 @@ class SkyMateApp(MDApp):
 
         if weather:
             home.ids.city.text = weather.get_city()
-            home.ids.temp.text = weather.get_temp()
+            home.ids.temp.text = self.format_temp(weather.get_temp())
             home.ids.desc.text = weather.get_desc()
             home.ids.humidity.text = weather.get_humidity()
             home.ids.wind.text = weather.get_wind()
@@ -417,7 +442,8 @@ class SkyMateApp(MDApp):
                         tarih = datetime.strptime(day["date"], "%Y-%m-%d")
                         yeni_tarih = tarih.strftime("%d-%m-%Y")
 
-                        day_text = f"{yeni_tarih}\n{day['temp']}°C\n{day['desc']}"
+                        temp_text = self.format_temp(day["temp"])
+                        day_text = f"{yeni_tarih}\n{temp_text}\n{day['desc']}"
 
                         day_button = MDRaisedButton(
                             text=day_text,
@@ -429,9 +455,7 @@ class SkyMateApp(MDApp):
                         days_layout.add_widget(day_button)
 
                 city_layout.add_widget(days_layout)
-
                 city_layout.height = city_label.height + days_layout.height
-
                 box.add_widget(city_layout)
 
         self.root.current = "forecast"
@@ -440,12 +464,28 @@ class SkyMateApp(MDApp):
         scroll.scroll_y = 1
 
     def change_theme(self):
-        self.theme_cls.theme_style = (
-            "Dark" if self.theme_cls.theme_style == "Light" else "Light"
-        )
+        if self.theme_cls.theme_style == "Light":
+            self.theme_cls.theme_style = "Dark"
+        else:
+            self.theme_cls.theme_style = "Light"
+
+        settings = self.root.get_screen("settings")
+        settings.ids.theme_btn.text = "Tema: " + self.theme_cls.theme_style
 
     def change_unit(self):
-        pass
+        if self.temp_unit == "C":
+            self.temp_unit = "F"
+        else:
+            self.temp_unit = "C"
+
+        settings = self.root.get_screen("settings")
+        settings.ids.unit_btn.text = "Sıcaklık Birimi: " + self.get_unit_text()
+
+        home = self.root.get_screen("home")
+        city = home.ids.city.text
+
+        if city and city != "Yükleniyor...":
+            self.load_weather(city)
 
 
 SkyMateApp().run()
